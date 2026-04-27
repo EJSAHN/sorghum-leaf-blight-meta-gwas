@@ -1,0 +1,10 @@
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+results/
+data/
+*.vcf
+*.vcf.gz
+*.vcf.bgz
+phenotype.xlsx
+Supplementary_Data_1.xlsx

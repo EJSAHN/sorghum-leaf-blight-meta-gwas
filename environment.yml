@@ -1,0 +1,13 @@
+name: sorghum-leaf-blight-meta-gwas
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - scikit-allel
+  - openpyxl
+  - pip

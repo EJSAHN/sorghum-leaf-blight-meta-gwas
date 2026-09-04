@@ -1,0 +1,58 @@
+name: expand-corrected-analysis-release
+
+on:
+  push:
+    branches:
+      - pei-r1-corrected-analysis-v1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    if: contains(github.event.head_commit.message, '[expand-release]')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out correction branch
+        uses: actions/checkout@v4
+        with:
+          ref: pei-r1-corrected-analysis-v1.0.0
+          fetch-depth: 0
+
+      - name: Validate and expand corrected release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat \
+            .bootstrap/payload_part_000 \
+            .bootstrap/fix_001_a .bootstrap/fix_001_b \
+            .bootstrap/payload_part_002 \
+            .bootstrap/fix_003_a .bootstrap/fix_003_b \
+            .bootstrap/payload_part_004 \
+            .bootstrap/fix_005_a .bootstrap/fix_005_b \
+            .bootstrap/payload_part_006 \
+            .bootstrap/payload_part_007 \
+            .bootstrap/payload_part_008 \
+            .bootstrap/payload_part_009 \
+            .bootstrap/payload_part_010 \
+            .bootstrap/payload_part_011 \
+            > /tmp/payload.b64
+
+          base64 --decode /tmp/payload.b64 > /tmp/repo.tar.gz
+          echo "36911b6088c0a7d3b052bc3336e730ee23a43c7ac9d459f75d6db0d329ffc2b4  /tmp/repo.tar.gz" | sha256sum -c -
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          tar -xzf /tmp/repo.tar.gz -C .
+          python -m compileall -q workflow
+
+      - name: Commit expanded release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Install corrected PEI R1 analysis workflow v1.0.0"
+          git push origin HEAD:pei-r1-corrected-analysis-v1.0.0

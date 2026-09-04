@@ -1,10 +1,45 @@
-__pycache__/
-.ipynb_checkpoints/
-*.pyc
-results/
+# Raw and derived study data
+01_inputs/
+04_intermediate/
+05_results/
+06_tables/
+07_figures/
+08_logs/
+09_manuscript/
+10_response_letter/
+11_release/
 data/
+results/
+output/
 *.vcf
 *.vcf.gz
-*.vcf.bgz
-phenotype.xlsx
-Supplementary_Data_1.xlsx
+*.bcf
+*.bed
+*.bim
+*.fam
+*.cXX.txt
+*.assoc.txt
+*.xlsx
+*.xls
+*.csv.gz
+*.bin
+*.npy
+*.npz
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local configuration
+config/local_config.json
+*.local.json

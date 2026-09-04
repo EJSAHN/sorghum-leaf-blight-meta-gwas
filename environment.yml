@@ -3,11 +3,11 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - numpy
-  - pandas
-  - scipy
-  - scikit-learn
-  - statsmodels
-  - scikit-allel
-  - openpyxl
-  - pip
+  - numpy>=1.26
+  - pandas>=2.1
+  - scipy>=1.11
+  - scikit-learn>=1.3
+  - statsmodels>=0.14
+  - openpyxl>=3.1
+  - matplotlib>=3.8
+  - pytest>=8

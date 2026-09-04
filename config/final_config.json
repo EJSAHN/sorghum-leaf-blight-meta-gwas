@@ -1,0 +1,65 @@
+{
+  "seed": 4261991,
+  "expected_vcf_sha256": "8AE866DDBBF729A08EB53E577A94640C7968DEB5C5CE028780EA3C5DF647B723",
+  "expected_canonical_rows": 1339,
+  "expected_phenotype_ids": 104,
+  "expected_matched_ids": 102,
+  "expected_primary_n": 100,
+  "expected_post_qc_snps": 567758,
+  "maf_min": 0.05,
+  "missing_max": 0.2,
+  "primary_min_locations": 4,
+  "locations": [
+    "Maradi",
+    "Bengou",
+    "Kolda",
+    "Ndiaganiao",
+    "Kaymor"
+  ],
+  "structure_physical_thin_kb": 20,
+  "structure_ld_window_kb": 250,
+  "structure_ld_r2": 0.2,
+  "structure_max_candidate_markers": 50000,
+  "structure_min_markers": 1000,
+  "variant_block_size": 15000,
+  "run_pc3_sensitivity": true,
+  "run_full_n102_sensitivity": true,
+  "run_leave_one_location_out_score": true,
+  "pc_sensitivity_count": 3,
+  "candidate_index_p": 0.0001,
+  "candidate_secondary_p": 0.001,
+  "candidate_top_n": 10,
+  "ld_clump_window_kb": 1000,
+  "ld_clump_r2": 0.2,
+  "fdr_cutoff": 0.1,
+  "primary_inference": "Official GEMMA 0.98.5 LOCO score test",
+  "confirmatory_inference": "Official GEMMA 0.98.5 LOCO likelihood-ratio test",
+  "diagnostic_only": "Official GEMMA 0.98.5 LOCO Wald test",
+  "reference_audit": {
+    "enabled": true,
+    "strict_primary": true,
+    "exact": {
+      "n_primary": 100,
+      "n_variants": 567758,
+      "unique_loco_test_classes": 455783,
+      "score_acat_fdr_hits": 0,
+      "score_simes_fdr_hits": 0,
+      "score_inc_fdr_hits": 0,
+      "score_sev_fdr_hits": 0,
+      "lrt_acat_fdr_hits": 0
+    },
+    "numeric": {
+      "score_acat_lambda_gc": {
+        "value": 1.014163,
+        "absolute_tolerance": 0.02
+      },
+      "score_acat_minimum_p": {
+        "value": 2.625492e-05,
+        "log10_absolute_tolerance": 0.05
+      }
+    },
+    "diagnostic_expected": {
+      "wald_acat_fdr_hits_diagnostic": 7589
+    }
+  }
+}

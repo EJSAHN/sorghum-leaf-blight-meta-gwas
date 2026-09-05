@@ -417,15 +417,6 @@ def build_accession_traits(canonical: pd.DataFrame, intermediate_dir: str | Path
     for col in raw_trait_cols:
         traits[col.replace("_RAW", "_INT")] = rank_int(traits[col])
 
-    # Reproduce the submitted V6 phenotype-ingest behavior for forensic comparison:
-    # rank-transform all plot rows, then retain only the first row per accession.
-    forensic = canonical[["ID_std", "INC", "SEV", "Location", "Stratum"]].copy()
-    forensic["SUBMITTED_V6_INC_INT"] = rank_int(forensic["INC"])
-    forensic["SUBMITTED_V6_SEV_INT"] = rank_int(forensic["SEV"])
-    forensic = forensic.drop_duplicates("ID_std", keep="first").set_index("ID_std")
-    traits = traits.join(forensic[["SUBMITTED_V6_INC_INT", "SUBMITTED_V6_SEV_INT", "Location", "Stratum"]], how="left")
-    traits = traits.rename(columns={"Location": "SUBMITTED_V6_SOURCE_LOCATION", "Stratum": "SUBMITTED_V6_SOURCE_STRATUM"})
-
     traits.index.name = "ID_std"
     traits = traits.reset_index()
     model_diagnostics = pd.DataFrame(model_rows)

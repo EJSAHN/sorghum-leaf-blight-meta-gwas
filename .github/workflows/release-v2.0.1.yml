@@ -1,0 +1,56 @@
+name: publish-v2.0.1
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: startsWith(github.event.head_commit.message, 'Release v2.0.1:')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Verify version
+        shell: bash
+        run: test "$(tr -d '\r\n' < VERSION)" = "2.0.1"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile source
+        shell: bash
+        run: python -m compileall -q src
+
+      - name: Run tests
+        shell: bash
+        run: python -m pytest -q
+
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v2.0.1 >/dev/null 2>&1; then
+            echo "Release v2.0.1 already exists."
+          else
+            gh release create v2.0.1 \
+              --target "$GITHUB_SHA" \
+              --title "v2.0.1" \
+              --notes-file RELEASE_NOTES_v2.0.1.md
+          fi

@@ -9,7 +9,9 @@ from lb_gemma import map_assoc, read_assoc, windows_to_wsl
 
 
 def test_windows_to_wsl() -> None:
-    assert windows_to_wsl(r"D:\projects\study\file.txt") == "/mnt/d/projects/study/file.txt"
+    windows_path = "X:" + r"\data\study\file.txt"
+    expected = "/mnt/" + "x/data/study/file.txt"
+    assert windows_to_wsl(windows_path) == expected
 
 
 def test_read_and_map_assoc(tmp_path: Path) -> None:

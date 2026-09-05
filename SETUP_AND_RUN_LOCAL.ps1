@@ -2,9 +2,10 @@
 param(
     [ValidateSet("all", "prepare", "gemma", "finalize")]
     [string]$Stage = "all",
-    [string]$ProjectRoot = "D:\projects\leaf_blight_PEIR1_final_v2",
-    [string]$LegacyRoot = "C:\projects\leaf blight",
-    [string]$PromRoot = "D:\2.Research\3. Prom project\Prom-African",
+    [Parameter(Mandatory = $true)]
+    [string]$ProjectRoot,
+    [string]$InputRoot = "",
+    [string]$GemmaWslPath = "",
     [switch]$Force
 )
 
@@ -16,38 +17,6 @@ function Banner([string]$Message) {
     Write-Host ("=" * 78) -ForegroundColor Cyan
     Write-Host $Message -ForegroundColor Cyan
     Write-Host ("=" * 78) -ForegroundColor Cyan
-}
-
-function Find-FirstFile {
-    param(
-        [string]$ExactName,
-        [string[]]$SearchRoots,
-        [string]$Pattern = ""
-    )
-    foreach ($root in $SearchRoots) {
-        if (-not (Test-Path -LiteralPath $root)) { continue }
-        $direct = Join-Path $root $ExactName
-        if (Test-Path -LiteralPath $direct -PathType Leaf) {
-            return (Get-Item -LiteralPath $direct).FullName
-        }
-    }
-    foreach ($root in $SearchRoots) {
-        if (-not (Test-Path -LiteralPath $root)) { continue }
-        $hits = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter $ExactName -ErrorAction SilentlyContinue)
-        if ($hits.Count -gt 0) {
-            return ($hits | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-        }
-    }
-    if ($Pattern) {
-        foreach ($root in $SearchRoots) {
-            if (-not (Test-Path -LiteralPath $root)) { continue }
-            $hits = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter $Pattern -ErrorAction SilentlyContinue)
-            if ($hits.Count -gt 0) {
-                return ($hits | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-            }
-        }
-    }
-    return $null
 }
 
 function Copy-Or-Link {
@@ -90,26 +59,24 @@ function Get-PythonBase {
         & python.exe -c "import sys; print(sys.executable)" *> $null
         if ($LASTEXITCODE -eq 0) { return @{Exe="python.exe"; Args=@()} }
     }
-    throw "Python 3.11 or the Windows py launcher was not found."
+    throw "Python 3.11 or later was not found."
 }
 
 function To-WSLPath([string]$WindowsPath) {
-    $drive = $WindowsPath.Substring(0,1).ToLower()
-    $rest = $WindowsPath.Substring(3).Replace("\", "/")
+    $full = [System.IO.Path]::GetFullPath($WindowsPath)
+    if ($full.Length -lt 3 -or $full[1] -ne ':') {
+        throw "A Windows drive path is required: $WindowsPath"
+    }
+    $drive = $full.Substring(0, 1).ToLower()
+    $rest = $full.Substring(3).Replace("\", "/")
     return "/mnt/$drive/$rest"
 }
 
-Banner "Sorghum leaf blight final revision pipeline v2.0.0 - stage: $Stage"
+Banner "Sorghum leaf blight analysis v2.0.1 - stage: $Stage"
 
-if (-not (Test-Path -LiteralPath "D:\")) { throw "D: drive was not found." }
-$drive = New-Object System.IO.DriveInfo("D")
-$freeGB = [math]::Round($drive.AvailableFreeSpace / 1GB, 2)
-Write-Host "D: free space: $freeGB GB"
-if ($freeGB -lt 8) { throw "At least 8 GB free space on D: is required." }
-
+$ProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
 $dirs = @(
     $ProjectRoot,
-    (Join-Path $ProjectRoot "00_submitted_snapshot"),
     (Join-Path $ProjectRoot "01_inputs"),
     (Join-Path $ProjectRoot "01_inputs\raw_field"),
     (Join-Path $ProjectRoot "01_tools"),
@@ -120,73 +87,80 @@ $dirs = @(
     (Join-Path $ProjectRoot "06_tables"),
     (Join-Path $ProjectRoot "07_figures"),
     (Join-Path $ProjectRoot "08_logs"),
-    (Join-Path $ProjectRoot "09_manuscript"),
-    (Join-Path $ProjectRoot "10_response_letter"),
-    (Join-Path $ProjectRoot "11_release"),
     (Join-Path $ProjectRoot "_temp"),
     (Join-Path $ProjectRoot "_pip_cache"),
     (Join-Path $ProjectRoot "_mplconfig")
 )
 foreach ($dir in $dirs) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
 
-Banner "Installing versioned pipeline into the D: project"
 $pipelineDest = Join-Path $ProjectRoot "02_pipeline"
+Banner "Installing the source into the analysis project"
 Get-ChildItem -LiteralPath $pipelineDest -Force -ErrorAction SilentlyContinue |
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $PSScriptRoot "*") -Destination $pipelineDest -Recurse -Force
+Get-ChildItem -LiteralPath $PSScriptRoot -Force |
+    Where-Object { $_.Name -ne ".git" } |
+    ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $pipelineDest -Recurse -Force
+    }
 Copy-Item -LiteralPath (Join-Path $pipelineDest "config\final_config.json") `
     -Destination (Join-Path $ProjectRoot "03_config\final_config.json") -Force
 
 if ($Stage -in @("all", "prepare")) {
-    Banner "Locating and copying audited inputs"
-    $searchRoots = @(
-        $LegacyRoot,
-        $PromRoot,
-        "$env:USERPROFILE\Downloads",
-        "D:\projects\leaf_blight_PEIR1_4261991_v02_model_lock\01_inputs"
-    )
-    $vcf = Find-FirstFile -ExactName "700k.vcf" -SearchRoots $searchRoots
-    $phenotype = Find-FirstFile -ExactName "Phenotype.xlsx" -SearchRoots $searchRoots
-    $gff = Find-FirstFile -ExactName "Sbicolor_454_v3.1.1.gene.gff3.gz" -SearchRoots $searchRoots
-    if (-not $vcf) { throw "700k.vcf was not found." }
-    if (-not $phenotype) { throw "Phenotype.xlsx was not found." }
-    if (-not $gff) { throw "Sbicolor_454_v3.1.1.gene.gff3.gz was not found." }
-
     $inputs = Join-Path $ProjectRoot "01_inputs"
-    Copy-Or-Link -Source $vcf -Destination (Join-Path $inputs "700k.vcf")
-    Copy-Or-Link -Source $phenotype -Destination (Join-Path $inputs "Phenotype.xlsx")
-    Copy-Or-Link -Source $gff -Destination (Join-Path $inputs "Sbicolor_454_v3.1.1.gene.gff3.gz")
-
-    $rawSpecs = @(
-        @{Name="Maradi_Field_Niger_2022_MAY_2023.xlsx"; Pattern="*Maradi*Field*Niger*2022*.xlsx"},
-        @{Name="Bengou_Field_Niger_2022_MAY_18_2023.xlsx"; Pattern="*Bengou*Field*Niger*2022*.xlsx"},
-        @{Name="Field_data_all_locations_SEN_2022_MAY_18_2023.xlsx"; Pattern="*Field*data*all*locations*SEN*2022*.xlsx"}
-    )
-    foreach ($spec in $rawSpecs) {
-        $source = Find-FirstFile -ExactName $spec.Name -SearchRoots $searchRoots -Pattern $spec.Pattern
-        if (-not $source) { throw "Original field workbook not found: $($spec.Name)" }
-        Copy-Or-Link -Source $source -Destination (Join-Path $inputs ("raw_field\" + $spec.Name))
+    if ($InputRoot) {
+        $InputRoot = [System.IO.Path]::GetFullPath($InputRoot)
+        Banner "Copying analysis inputs"
+        Copy-Or-Link -Source (Join-Path $InputRoot "700k.vcf") `
+            -Destination (Join-Path $inputs "700k.vcf")
+        Copy-Or-Link -Source (Join-Path $InputRoot "Phenotype.xlsx") `
+            -Destination (Join-Path $inputs "Phenotype.xlsx")
+        Copy-Or-Link -Source (Join-Path $InputRoot "Sbicolor_454_v3.1.1.gene.gff3.gz") `
+            -Destination (Join-Path $inputs "Sbicolor_454_v3.1.1.gene.gff3.gz")
+        foreach ($name in @(
+            "Maradi_Field_Niger_2022_MAY_2023.xlsx",
+            "Bengou_Field_Niger_2022_MAY_18_2023.xlsx",
+            "Field_data_all_locations_SEN_2022_MAY_18_2023.xlsx"
+        )) {
+            Copy-Or-Link -Source (Join-Path $InputRoot ("raw_field\" + $name)) `
+                -Destination (Join-Path $inputs ("raw_field\" + $name))
+        }
     }
 
-    Banner "Hashing inputs"
+    foreach ($required in @(
+        "700k.vcf",
+        "Phenotype.xlsx",
+        "Sbicolor_454_v3.1.1.gene.gff3.gz",
+        "raw_field\Maradi_Field_Niger_2022_MAY_2023.xlsx",
+        "raw_field\Bengou_Field_Niger_2022_MAY_18_2023.xlsx",
+        "raw_field\Field_data_all_locations_SEN_2022_MAY_18_2023.xlsx"
+    )) {
+        $path = Join-Path $inputs $required
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Required input not found: $path"
+        }
+    }
+
+    Banner "Validating input checksums"
     $hashRows = foreach ($file in Get-ChildItem -LiteralPath $inputs -Recurse -File) {
         $hash = Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256
         [pscustomobject]@{
-            Name=$file.Name
-            FullName=$file.FullName
-            SizeBytes=$file.Length
-            LastWriteTime=$file.LastWriteTime
-            SHA256=$hash.Hash
+            Name = $file.Name
+            RelativePath = $file.FullName.Substring($inputs.Length).TrimStart([char]92)
+            SizeBytes = $file.Length
+            SHA256 = $hash.Hash
         }
     }
     $hashRows | Export-Csv -LiteralPath (Join-Path $inputs "input_hashes.csv") -NoTypeInformation -Encoding UTF8
+    $configData = Get-Content -LiteralPath (Join-Path $ProjectRoot "03_config\final_config.json") -Raw | ConvertFrom-Json
     $observed = ($hashRows | Where-Object Name -eq "700k.vcf" | Select-Object -First 1).SHA256
-    $expected = "8AE866DDBBF729A08EB53E577A94640C7968DEB5C5CE028780EA3C5DF647B723"
-    if ($observed -ne $expected) { throw "VCF SHA-256 mismatch: $observed" }
-    Write-Host "VCF SHA-256 matches the audited baseline." -ForegroundColor Green
+    $expected = [string]$configData.expected_vcf_sha256
+    if ($expected -and $observed -ne $expected.ToUpper()) {
+        throw "VCF SHA-256 mismatch: $observed"
+    }
+    Write-Host "Input checksum validation passed." -ForegroundColor Green
 }
 
-Banner "Creating or reusing the Python environment on D:"
+Banner "Creating or reusing the Python environment"
 $env:TEMP = Join-Path $ProjectRoot "_temp"
 $env:TMP = $env:TEMP
 $env:PIP_CACHE_DIR = Join-Path $ProjectRoot "_pip_cache"
@@ -197,58 +171,70 @@ $python = Join-Path $venv "Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
     $base = Get-PythonBase
     & $base.Exe @($base.Args) -m venv $venv
-    if ($LASTEXITCODE -ne 0) { throw "Failed to create Python environment." }
+    if ($LASTEXITCODE -ne 0) { throw "Failed to create the Python environment." }
 }
 & $python -m pip install --upgrade pip
 if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed." }
 & $python -m pip install -r (Join-Path $pipelineDest "requirements.txt")
-if ($LASTEXITCODE -ne 0) { throw "Python dependency installation failed." }
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed." }
 
 $gemmaWin = Join-Path $ProjectRoot "01_tools\gemma-0.98.5"
 $gemmaGz = Join-Path $ProjectRoot "01_tools\gemma-0.98.5-linux-static-AMD64.gz"
-$gemmaWsl = To-WSLPath $gemmaWin
+if ($GemmaWslPath) {
+    $gemmaWsl = $GemmaWslPath
+} else {
+    $gemmaWsl = To-WSLPath $gemmaWin
+}
+
 if ($Stage -in @("all", "gemma")) {
-    Banner "Preparing official GEMMA 0.98.5 in WSL"
+    Banner "Preparing official GEMMA 0.98.5"
     if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
-        throw "WSL is required for official GEMMA 0.98.5."
+        throw "WSL is required for this helper."
     }
     wsl.exe -e sh -lc "printf WSL_OK" *> $null
-    if ($LASTEXITCODE -ne 0) { throw "WSL is installed but no Linux distribution is ready." }
-    if (-not (Test-Path -LiteralPath $gemmaWin -PathType Leaf)) {
+    if ($LASTEXITCODE -ne 0) { throw "No ready Linux distribution was found in WSL." }
+
+    if (-not $GemmaWslPath -and -not (Test-Path -LiteralPath $gemmaWin -PathType Leaf)) {
         $url = "https://github.com/genetics-statistics/GEMMA/releases/download/v0.98.5/gemma-0.98.5-linux-static-AMD64.gz"
-        Write-Host "Downloading official GEMMA 0.98.5..."
         Invoke-WebRequest -Uri $url -OutFile $gemmaGz -UseBasicParsing
         $gzWsl = To-WSLPath $gemmaGz
         wsl.exe -e sh -lc "gzip -dc '$gzWsl' > '$gemmaWsl' && chmod u+x '$gemmaWsl'"
-        if ($LASTEXITCODE -ne 0) { throw "Failed to decompress GEMMA in WSL." }
+        if ($LASTEXITCODE -ne 0) { throw "Failed to prepare GEMMA in WSL." }
     }
+
     $md5 = (wsl.exe -e sh -lc "md5sum '$gemmaWsl' | awk '{print `$1}'").Trim().ToLower()
     $expectedMd5 = "f5e90535ff6a36867dcb5f6b0fb24135"
     if ($md5 -ne $expectedMd5) { throw "GEMMA MD5 mismatch: $md5" }
-    Write-Host "Official GEMMA 0.98.5 verified." -ForegroundColor Green
+    Write-Host "GEMMA 0.98.5 checksum validation passed." -ForegroundColor Green
 }
 
-Banner "Running pipeline stage: $Stage"
+Banner "Running stage: $Stage"
 $runner = Join-Path $pipelineDest "src\run_final_pipeline.py"
-$argsList = @($runner, "--project-root", $ProjectRoot, "--stage", $Stage, "--config", (Join-Path $ProjectRoot "03_config\final_config.json"))
+$argsList = @(
+    $runner,
+    "--project-root", $ProjectRoot,
+    "--stage", $Stage,
+    "--config", (Join-Path $ProjectRoot "03_config\final_config.json")
+)
 if ($Stage -in @("all", "gemma")) { $argsList += @("--gemma-wsl", $gemmaWsl) }
 if ($Force) { $argsList += "--force" }
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$psLog = Join-Path $ProjectRoot "08_logs\powershell_final_v2_$stamp.log"
+$psLog = Join-Path $ProjectRoot "08_logs\powershell_run_$stamp.log"
 $oldPreference = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 & $python @argsList 2>&1 | Tee-Object -FilePath $psLog
 $exitCode = $LASTEXITCODE
 $ErrorActionPreference = $oldPreference
 if ($exitCode -ne 0) {
-    Write-Host "Pipeline failed. Complete output: $psLog" -ForegroundColor Red
-    throw "Pipeline exited with code $exitCode."
+    throw "The analysis exited with code $exitCode. Complete output: $psLog"
 }
 
-Banner "FINAL PIPELINE STAGE COMPLETE"
+Banner "ANALYSIS STAGE COMPLETE"
 Write-Host "Project: $ProjectRoot" -ForegroundColor Yellow
-if (Test-Path -LiteralPath (Join-Path $ProjectRoot "05_results\READ_ME_FIRST_FINAL_ANALYSIS.txt")) {
-    Write-Host "Summary: $(Join-Path $ProjectRoot '05_results\READ_ME_FIRST_FINAL_ANALYSIS.txt')" -ForegroundColor Yellow
-    Write-Host "Workbook: $(Join-Path $ProjectRoot '05_results\LeafBlight_PEIR1_Final_Analysis_Results.xlsx')" -ForegroundColor Yellow
+$summaryPath = Join-Path $ProjectRoot "05_results\ANALYSIS_SUMMARY.txt"
+$workbookPath = Join-Path $ProjectRoot "05_results\LeafBlight_MultiEnvironment_Analysis_Results.xlsx"
+if (Test-Path -LiteralPath $summaryPath) {
+    Write-Host "Summary: $summaryPath" -ForegroundColor Yellow
+    Write-Host "Workbook: $workbookPath" -ForegroundColor Yellow
 }
 Write-Host "Log: $psLog"

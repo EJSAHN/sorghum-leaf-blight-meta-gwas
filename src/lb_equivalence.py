@@ -141,7 +141,7 @@ def compute_or_load_equivalence(
         },
     )
     logger.info(
-        "Equivalence audit complete: %s global alias classes; %s chromosome-specific test classes (%s)",
+        "Equivalence analysis complete: %s global alias classes; %s chromosome-specific test classes (%s)",
         f"{len(global_counts):,}", f"{len(chrom_counts):,}", elapsed(start),
     )
     return EquivalenceResult(
@@ -225,7 +225,7 @@ def build_equivalence_tables(
         chrom_table[f"q_unique_{method}"] = bh_fdr(p_min)
 
     # Same genotype vector on the same chromosome is the same LOCO test and
-    # should produce the same statistic. Record deviations as a code audit.
+    # should produce the same statistic. Record deviations as validation metrics.
     sort_idx = np.argsort(eq.chrom_inverse, kind="stable")
     sorted_cls = eq.chrom_inverse[sort_idx]
     starts = np.r_[0, np.flatnonzero(sorted_cls[1:] != sorted_cls[:-1]) + 1]
@@ -475,7 +475,7 @@ def enrich_candidates(
     ]
     cols = [c for c in cols if c in primary.columns]
     # Clumping input carries a copy of most scan columns. Preserve only
-    # clump/selection metadata before joining the authoritative primary scan,
+    # clump/selection metadata before joining the primary scan,
     # otherwise pandas creates ambiguous _x/_y effect columns.
     overlap = [c for c in candidates.columns if c in primary.columns and c != "variant_index"]
     out = candidates.drop(columns=overlap, errors="ignore").merge(

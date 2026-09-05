@@ -1,121 +1,98 @@
 # Sorghum leaf blight multi-environment genomic analysis
 
-Version **2.0.0** is the reproducible analysis workflow supporting the revised
-sorghum leaf blight study based on West African field evaluations in Niger and
-Senegal.
+Version **2.0.1** provides a reproducible workflow for genomic analysis of sorghum leaf blight incidence and severity measured across field locations in Niger and Senegal.
 
-This release supersedes the earlier exploratory repository workflow. It
-reconstructs accession phenotypes from the original plot-level observations
-before transformation, preserves field/replicate structure, uses a prespecified
-primary population of accessions evaluated in at least four locations, and uses
-official GEMMA 0.98.5 mixed-model tests for inference.
+## Analysis overview
+
+The workflow:
+
+- reconstructs a canonical 1,339-row plot-level dataset from five field locations;
+- distinguishes numeric zero from missing observations;
+- models field-stratum effects before constructing accession-level phenotypes;
+- applies rank-based inverse-normal transformation after accession-level estimation;
+- uses 100 accessions represented in at least four locations as the primary population;
+- retains all 102 genotype-matched accessions as a sensitivity population;
+- evaluates standard severity, incidence-adjusted severity, and disease-positive-only severity;
+- builds LD-pruned genomic structure markers and chromosome-specific LOCO kinship matrices;
+- combines incidence and severity p-values with ACAT and Simes procedures;
+- groups exact and allele-complement genotype patterns before LD-based region summaries; and
+- reports effect estimates, standard errors, 95% confidence intervals, detectable-effect calculations, and leave-one-location-out stability.
 
 ## Inferential hierarchy
 
-The code enforces the following hierarchy.
+1. **Primary:** official GEMMA 0.98.5 leave-one-chromosome-out (LOCO) score test.
+2. **Confirmatory sensitivity:** official GEMMA 0.98.5 LOCO likelihood-ratio test.
+3. **Diagnostic:** official GEMMA 0.98.5 LOCO Wald test.
 
-1. **Primary:** official GEMMA 0.98.5 leave-one-chromosome-out (LOCO) **score test**.
-2. **Confirmatory sensitivity:** official GEMMA 0.98.5 LOCO **likelihood-ratio test**.
-3. **Diagnostic only:** official GEMMA 0.98.5 LOCO **Wald test**.
-
-The Wald results are retained to document small-sample variance-component
-sensitivity; they are not used to define reported genome-wide discoveries.
-Score-test p-values are integrated across incidence and severity with both ACAT
-and Simes procedures. Benjamini-Hochberg FDR is calculated at 10%.
-
-Top-ranked, LD-clumped regions are explicitly labelled **exploratory** unless
-they pass the prespecified FDR criterion. The workflow does not perform or claim
-Bayesian fine-mapping or credible sets.
-
-## Main changes from the earlier exploratory workflow
-
-- Builds a canonical 1,339-row plot-level leaf-blight dataset from five field
-  locations.
-- Distinguishes numeric zero from missing values.
-- Adjusts raw incidence and severity for field stratum before constructing
-  accession-level phenotypes.
-- Applies rank-based inverse-normal transformation only after accession-level
-  estimation.
-- Uses 100 accessions represented in at least four locations as the primary
-  population; all 102 genotype-matched accessions are retained as a sensitivity
-  analysis.
-- Computes standard severity, incidence-adjusted severity, and
-  disease-positive-only severity.
-- Builds LD-pruned, variance-standardized genomic structure markers and
-  chromosome-specific LOCO kinship matrices.
-- Runs official GEMMA score, LRT, and Wald tests with guaranteed-unique marker
-  IDs and Linux-compatible SNP lists.
-- Audits exact and allele-complement genotype aliases before candidate-region
-  counting.
-- Uses genotype-based LD clumping rather than fixed physical bins.
-- Compares ACAT with Simes and reports effect estimates, standard errors, 95%
-  confidence intervals, formal detectable-effect calculations, n=102
-  sensitivity, K+PC3 sensitivity, and leave-one-location-out stability.
+Score-test p-values are combined across incidence and severity with both ACAT and Simes. Benjamini-Hochberg false-discovery-rate control is calculated at 10%. Top-ranked LD-clumped regions are labelled exploratory unless they satisfy the prespecified FDR criterion. The workflow does not perform Bayesian fine-mapping or construct credible sets.
 
 ## Required inputs
 
-Place the following files under a project directory. Raw inputs are deliberately
-excluded from GitHub.
+Arrange the input files as follows:
 
 ```text
-PROJECT_ROOT/
-  01_inputs/
-    700k.vcf
-    Phenotype.xlsx
-    Sbicolor_454_v3.1.1.gene.gff3.gz
-    raw_field/
-      Maradi_Field_Niger_2022_MAY_2023.xlsx
-      Bengou_Field_Niger_2022_MAY_18_2023.xlsx
-      Field_data_all_locations_SEN_2022_MAY_18_2023.xlsx
+<INPUT_ROOT>/
+  700k.vcf
+  Phenotype.xlsx
+  Sbicolor_454_v3.1.1.gene.gff3.gz
+  raw_field/
+    Maradi_Field_Niger_2022_MAY_2023.xlsx
+    Bengou_Field_Niger_2022_MAY_18_2023.xlsx
+    Field_data_all_locations_SEN_2022_MAY_18_2023.xlsx
 ```
 
-`Phenotype.xlsx` is the corrected leaf-blight-only six-column workbook used in
-the revision audit. The pipeline explicitly extracts only leaf blight incidence
-and severity; values for other diseases are not used.
+Only leaf blight incidence and severity are extracted from the field workbooks. Other disease measurements are not used.
 
-For the audited VCF, the expected SHA-256 is:
+The reference VCF used for the reported analysis has SHA-256:
 
 ```text
 8AE866DDBBF729A08EB53E577A94640C7968DEB5C5CE028780EA3C5DF647B723
 ```
 
-The study-specific expected dimensions are encoded in
-`config/final_config.json` and checked before analysis:
+The expected study dimensions are stored in `config/final_config.json` and checked during execution:
 
 ```text
 1,339 plot-level observations
-104 phenotype IDs
+104 phenotype identifiers
 102 genotype-matched accessions
 100 primary accessions
 567,758 post-QC SNPs
 ```
 
-## Windows one-command workflow
+## Windows workflow
 
-The intended local environment is Windows with a `D:` drive and WSL installed.
-The local release package contains `SETUP_AND_RUN_LOCAL.ps1`, which:
-
-- creates a clean project on `D:`;
-- locates and copies or hard-links the audited inputs;
-- creates a Python 3.11 environment on `D:`;
-- downloads and verifies official GEMMA 0.98.5 inside WSL; and
-- runs preparation, GEMMA, and final consolidation stages.
-
-Generic direct invocation after the inputs and environment are prepared:
+Windows execution requires PowerShell, Python 3.11 or later, and WSL with a Linux distribution. From the repository root:
 
 ```powershell
-python src\run_final_pipeline.py `
-  --project-root "D:\projects\leaf_blight_PEIR1_final_v2" `
-  --stage all `
-  --gemma-wsl "/mnt/d/projects/leaf_blight_PEIR1_final_v2/01_tools/gemma-0.98.5"
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\SETUP_AND_RUN_LOCAL.ps1 `
+  -ProjectRoot "<PROJECT_ROOT>" `
+  -InputRoot "<INPUT_ROOT>"
 ```
 
-Stages can be resumed separately:
+The helper creates the project structure, copies or hard-links the inputs, installs Python dependencies in the project directory, downloads and verifies official GEMMA 0.98.5 within WSL, and runs the selected stage. See `docs/WINDOWS_WORKFLOW.md`.
+
+## Direct invocation
+
+After inputs and dependencies are prepared:
 
 ```powershell
-python src\run_final_pipeline.py --project-root "D:\path\to\project" --stage prepare
-python src\run_final_pipeline.py --project-root "D:\path\to\project" --stage gemma --gemma-wsl "/mnt/d/path/to/gemma"
-python src\run_final_pipeline.py --project-root "D:\path\to\project" --stage finalize
+python src
+un_final_pipeline.py `
+  --project-root "<PROJECT_ROOT>" `
+  --stage all `
+  --gemma-wsl "<WSL_PATH_TO_GEMMA>"
+```
+
+Stages can be resumed independently:
+
+```powershell
+python src
+un_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage prepare
+python src
+un_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage gemma --gemma-wsl "<WSL_PATH_TO_GEMMA>"
+python src
+un_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage finalize
 ```
 
 ## Principal outputs
@@ -126,9 +103,9 @@ python src\run_final_pipeline.py --project-root "D:\path\to\project" --stage fin
   gemma_primary_n100_pc3/
   gemma_full_n102/
   gemma_lolo_score/
-  LeafBlight_PEIR1_Final_Analysis_Results.xlsx
-  final_analysis_manifest.json
-  READ_ME_FIRST_FINAL_ANALYSIS.txt
+  LeafBlight_MultiEnvironment_Analysis_Results.xlsx
+  analysis_manifest.json
+  ANALYSIS_SUMMARY.txt
 
 06_tables/
   Inference_Profile.csv
@@ -139,38 +116,37 @@ python src\run_final_pipeline.py --project-root "D:\path\to\project" --stage fin
   Top_Ranked_Candidates.csv
   Candidate_Genes.csv
   Power.csv
-  Final_Model_Sensitivity.csv
-  Final_Leave_One_Location_Out.csv
+  Model_Sensitivity.csv
+  Leave_One_Location_Out.csv
+  Leave_One_Location_Out_Candidates.csv
   Unique_Test_Classes_full.csv.gz
   Global_Alias_Classes_full.csv.gz
 ```
 
-Large all-SNP outputs and binary caches remain local and are not committed to
-GitHub.
+Large all-SNP outputs and binary caches remain in the analysis project and are not committed to the source repository.
 
-## Reproducibility safeguards
+## Reproducibility checks
 
-- Input SHA-256 validation.
+- Input SHA-256 verification.
 - Deterministic seed `4261991`.
 - Explicit sample-order manifests.
-- PLINK BED read-back checks.
-- Synthetic unique GEMMA marker IDs mapped back to original SNP identifiers.
-- LF-only chromosome SNP lists for WSL/Linux.
-- Global and chromosome-specific kinship symmetry/eigenvalue audits.
-- Exact/complement genotype-equivalence audit.
+- PLINK BED read-back verification.
+- Unique GEMMA marker identifiers mapped back to the source SNP identifiers.
+- LF-only chromosome SNP lists for Linux execution.
+- Global and chromosome-specific kinship symmetry and eigenvalue checks.
+- Exact and allele-complement genotype-equivalence analysis.
 - Separate primary, confirmatory, and diagnostic test labels.
-- Machine-readable final analysis manifest.
+- Machine-readable analysis manifest.
 
 ## Installation without the PowerShell helper
 
 ```bash
 python -m venv .venv
-.venv/Scripts/python -m pip install --upgrade pip
-.venv/Scripts/python -m pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-On Linux/macOS, use the platform-equivalent virtual-environment activation and
-provide a native GEMMA 0.98.5 executable instead of the WSL path.
+On Linux or macOS, provide a native GEMMA 0.98.5 executable instead of a WSL path.
 
 ## Tests
 
@@ -178,30 +154,16 @@ provide a native GEMMA 0.98.5 executable instead of the WSL path.
 python -m pytest -q
 ```
 
-The test suite covers phenotype transformation, ACAT/Simes combination,
-PLINK BED coding, genotype-equivalence classes, detectable-effect calculations,
-and compact result consolidation. External GEMMA is not invoked in CI.
+The test suite covers phenotype transformation, ACAT and Simes combination, PLINK BED coding, genotype-equivalence classes, detectable-effect calculations, result consolidation, and public-distribution text checks. External GEMMA is not invoked in continuous integration.
 
 ## Data availability
 
-The code is public. The raw phenotype and genotype files are not redistributed
-here. Genotype data should be obtained from the cited public data source, and
-processed result tables should accompany the manuscript as Supplementary Data.
+The source code is public. Raw phenotype and genotype files are not redistributed in this repository. Genotype data should be obtained from the cited public data source, and processed result tables are distributed separately with the associated research article.
+
+## Citation
+
+Use the metadata in `CITATION.cff` or the DOI assigned to the corresponding Zenodo release.
 
 ## License
 
 MIT License. See `LICENSE`.
-
-## Guarded GitHub publication helper
-
-The release package includes `powershell/PUBLISH_GITHUB_v2.0.0.ps1`. It runs
-compilation and unit tests, verifies the audited pre-update `main` SHA, creates a
-backup tag for the exploratory repository state, refuses study-data files,
-updates `main`, and pushes the annotated `v2.0.0` tag using the local Git
-credential manager. No credentials are stored in the repository.
-
-For the audited Windows system, `powershell/INSTALL_AND_PUBLISH_v2.0.0.ps1`
-provides the safest release path: it installs the exact source on `D:`, runs the
-complete study analysis and strict reference-reproduction audit, runs the unit
-tests, and only then updates GitHub. A failed local analysis leaves GitHub
-unchanged.

@@ -35,7 +35,7 @@
   "primary_inference": "Official GEMMA 0.98.5 LOCO score test",
   "confirmatory_inference": "Official GEMMA 0.98.5 LOCO likelihood-ratio test",
   "diagnostic_only": "Official GEMMA 0.98.5 LOCO Wald test",
-  "reference_audit": {
+  "reference_validation": {
     "enabled": true,
     "strict_primary": true,
     "exact": {

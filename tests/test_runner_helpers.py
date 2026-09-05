@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from run_final_pipeline import _reference_audit, _scan_comparison
+from run_final_pipeline import _reference_validation, _scan_comparison
 
 
 def _meta_table(offset: float = 0.0) -> pd.DataFrame:
@@ -33,10 +33,10 @@ def test_scan_comparison_matches_by_variant_index_not_row_order() -> None:
     assert np.all(result["spearman_rho"] > 0.99)
 
 
-def test_reference_audit_passes_and_fails() -> None:
+def test_reference_validation_passes_and_fails() -> None:
     summary = {"n_primary": 100, "score_acat_lambda_gc": 1.014}
     cfg = {
-        "reference_audit": {
+        "reference_validation": {
             "enabled": True,
             "strict_primary": True,
             "exact": {"n_primary": 100},
@@ -45,10 +45,10 @@ def test_reference_audit_passes_and_fails() -> None:
             },
         }
     }
-    result = _reference_audit(summary, cfg)
+    result = _reference_validation(summary, cfg)
     assert (result["status"] == "PASS").all()
     bad = dict(summary, n_primary=99)
-    failed = _reference_audit(bad, cfg)
+    failed = _reference_validation(bad, cfg)
     assert failed.attrs["strict_primary"] is True
     assert failed.attrs["primary_failures"]
     assert "FAIL" in failed["status"].tolist()

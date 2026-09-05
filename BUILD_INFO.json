@@ -1,13 +1,12 @@
 {
-  "software_release": "2.0.0",
-  "build_date": "2026-09-04",
-  "study_pipeline": "PEI R1 final revision workflow",
+  "software_release": "2.0.1",
+  "release_date": "2026-09-04",
+  "analysis_name": "Sorghum leaf blight multi-environment genomic analysis",
   "primary_inference": "Official GEMMA 0.98.5 LOCO score test",
   "confirmatory_inference": "Official GEMMA 0.98.5 LOCO likelihood-ratio test",
-  "diagnostic_only": "Official GEMMA 0.98.5 LOCO Wald test",
+  "diagnostic_inference": "Official GEMMA 0.98.5 LOCO Wald test",
   "gemma_release_asset": "gemma-0.98.5-linux-static-AMD64.gz",
   "gemma_binary_md5": "f5e90535ff6a36867dcb5f6b0fb24135",
-  "audited_vcf_sha256": "8AE866DDBBF729A08EB53E577A94640C7968DEB5C5CE028780EA3C5DF647B723",
-  "unit_tests": "13 passed",
-  "source_git_commit": "assigned when published"
+  "reference_vcf_sha256": "8AE866DDBBF729A08EB53E577A94640C7968DEB5C5CE028780EA3C5DF647B723",
+  "release_tag": "v2.0.1"
 }

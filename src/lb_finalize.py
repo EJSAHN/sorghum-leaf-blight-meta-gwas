@@ -425,13 +425,13 @@ def finalize_results(
         "SEV_Clump_Leads": sev_leads,
         "SEV_Clump_Members": sev_members,
     }
-    write_workbook(results_dir / "LeafBlight_PEIR1_Final_Analysis_Results.xlsx", compact_tables)
+    write_workbook(results_dir / "LeafBlight_MultiEnvironment_Analysis_Results.xlsx", compact_tables)
     for name, table in compact_tables.items():
         table.to_csv(tables_dir / f"{name}.csv", index=False)
 
-    _plot_qq(score_table["p_ACAT"].to_numpy(float), "Primary GEMMA LOCO score ACAT", figures_dir / "Figure_Final_Score_ACAT_QQ.png")
-    _plot_qq(score_table["p_SEV"].to_numpy(float), "Primary GEMMA LOCO score severity", figures_dir / "Figure_Final_Score_SEV_QQ.png")
-    _plot_test_diagnostic(test_comparison, figures_dir / "Figure_Final_Test_Sensitivity.png")
+    _plot_qq(score_table["p_ACAT"].to_numpy(float), "Primary GEMMA LOCO score ACAT", figures_dir / "Figure_Score_ACAT_QQ.png")
+    _plot_qq(score_table["p_SEV"].to_numpy(float), "Primary GEMMA LOCO score severity", figures_dir / "Figure_Score_SEV_QQ.png")
+    _plot_test_diagnostic(test_comparison, figures_dir / "Figure_Test_Sensitivity.png")
 
     summary = {
         "primary_engine": "official GEMMA 0.98.5",
@@ -450,22 +450,22 @@ def finalize_results(
         "score_sev_fdr_hits": int((score_table["q_SEV"] < 0.10).sum()),
         "lrt_acat_fdr_hits": int((lrt_table["q_ACAT"] < 0.10).sum()),
         "wald_acat_fdr_hits_diagnostic": int((wald_table["q_ACAT"] < 0.10).sum()),
-        "candidate_regions_reported_as_exploratory": int(len(candidates)),
+        "exploratory_candidate_regions": int(len(candidates)),
         "candidate_selection_rule": (
             f"alias-aware LD clumping of score-test ACAT/SEV signals at index p<={index_p:g}, "
             f"secondary p<={secondary_p:g}, +/-{ld_window_kb} kb, r2>={ld_r2:.2f}; "
-            f"top {candidate_top_n} retained for review"
+            f"top {candidate_top_n} retained for summary"
         ),
-        "interpretation_guardrail": (
+        "interpretation_note": (
             "Only score-test and LRT results are inferential. Wald results are retained solely "
             "as a small-sample variance-component diagnostic. Top-ranked regions are exploratory, "
             "not genome-wide significant QTL."
         ),
         "elapsed": elapsed(start),
     }
-    save_json(results_dir / "final_analysis_manifest.json", summary)
+    save_json(results_dir / "analysis_manifest.json", summary)
     lines = [
-        "LEAF BLIGHT PEI R1 FINAL ANALYSIS SUMMARY",
+        "SORGHUM LEAF BLIGHT MULTI-ENVIRONMENT ANALYSIS",
         "=" * 52,
         "",
         f"Primary engine: {summary['primary_engine']}",
@@ -482,12 +482,10 @@ def finalize_results(
         f"LRT ACAT BH-FDR 10% hits: {summary['lrt_acat_fdr_hits']}",
         f"Wald ACAT BH-FDR 10% hits (diagnostic only): {summary['wald_acat_fdr_hits_diagnostic']}",
         "",
-        "GUARDRAILS",
+        "INTERPRETATION",
         "----------",
-        summary["interpretation_guardrail"],
-        "",
-        "The submitted 37-locus result is superseded and must not be restored.",
+        summary["interpretation_note"],
     ]
-    (results_dir / "READ_ME_FIRST_FINAL_ANALYSIS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (results_dir / "ANALYSIS_SUMMARY.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     logger.info("Final result consolidation complete (%s)", elapsed(start))
     return summary

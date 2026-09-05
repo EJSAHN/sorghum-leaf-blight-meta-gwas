@@ -113,7 +113,7 @@ def json_default(obj: Any) -> Any:
 
 
 def setup_logger(log_path: str | Path, verbose: bool = True) -> logging.Logger:
-    logger = logging.getLogger("leaf_blight_final_pipeline")
+    logger = logging.getLogger("leaf_blight_pipeline")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
     formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
@@ -137,7 +137,6 @@ def ensure_directories(project_root: str | Path) -> dict[str, Path]:
     root = Path(project_root).resolve()
     mapping = {
         "root": root,
-        "submitted": root / "00_submitted_snapshot",
         "inputs": root / "01_inputs",
         "pipeline": root / "02_pipeline",
         "config": root / "03_config",
@@ -146,9 +145,6 @@ def ensure_directories(project_root: str | Path) -> dict[str, Path]:
         "tables": root / "06_tables",
         "figures": root / "07_figures",
         "logs": root / "08_logs",
-        "manuscript": root / "09_manuscript",
-        "response": root / "10_response_letter",
-        "release": root / "11_release",
         "cache": root / "04_intermediate" / "genotype_cache",
         "structure": root / "04_intermediate" / "structure_cache",
         "gwas_cache": root / "04_intermediate" / "gwas_cache",

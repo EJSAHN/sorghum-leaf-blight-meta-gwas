@@ -60,7 +60,7 @@ def prepare_kinship_text(
         minimum_eigenvalue = float(np.linalg.eigvalsh(k).min())
         if symmetry > 1e-8 or minimum_eigenvalue < -1e-7:
             raise ValueError(
-                f"Kinship matrix {label} failed audit: symmetry={symmetry}, "
+                f"Kinship matrix {label} failed validation: symmetry={symmetry}, "
                 f"min eigenvalue={minimum_eigenvalue}"
             )
         np.savetxt(path, k, fmt="%.15g")

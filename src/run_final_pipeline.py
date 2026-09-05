@@ -44,7 +44,7 @@ from lb_phenotype import (
 from lb_plink import write_unique_plink_files
 from lb_structure import build_or_load_population_structure, select_ld_pruned_structure_markers
 
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 
 
 def require(path: Path, label: str) -> Path:
@@ -54,7 +54,7 @@ def require(path: Path, label: str) -> Path:
 
 
 def read_traits(paths: dict[str, Path]) -> pd.DataFrame:
-    path = paths["intermediate"] / "phenotype_all_accession_traits_v2.csv"
+    path = paths["intermediate"] / "phenotype_all_accession_traits.csv"
     if not path.exists():
         raise FileNotFoundError(f"Prepared phenotype traits not found: {path}")
     return pd.read_csv(path)
@@ -80,7 +80,7 @@ def prepare_stage(paths: dict[str, Path], cfg: dict[str, Any], logger, force: bo
     )
     location_traits = build_location_specific_traits(canonical, locations, paths["intermediate"])
     traits = traits.merge(lolo_traits, on="ID_std", how="left").merge(location_traits, on="ID_std", how="left")
-    traits_path = paths["intermediate"] / "phenotype_all_accession_traits_v2.csv"
+    traits_path = paths["intermediate"] / "phenotype_all_accession_traits.csv"
     traits.to_csv(traits_path, index=False)
 
     expected_rows = cfg.get("expected_canonical_rows")
@@ -347,8 +347,8 @@ def gemma_stage(paths: dict[str, Path], cfg: dict[str, Any], gemma_wsl: str, log
     logger.info("Official GEMMA stage complete")
 
 
-def _reference_audit(summary: dict[str, Any], cfg: dict[str, Any]) -> pd.DataFrame:
-    spec = cfg.get("reference_audit", {})
+def _reference_validation(summary: dict[str, Any], cfg: dict[str, Any]) -> pd.DataFrame:
+    spec = cfg.get("reference_validation", {})
     if not spec or not bool(spec.get("enabled", False)):
         return pd.DataFrame(columns=["metric", "observed", "expected", "tolerance", "status", "kind"])
     rows: list[dict[str, Any]] = []
@@ -377,7 +377,7 @@ def _reference_audit(summary: dict[str, Any], cfg: dict[str, Any]) -> pd.DataFra
             )
             tolerance_label = f"|delta log10| <= {tolerance:g}"
         else:
-            raise ValueError(f"Reference audit metric {metric} lacks a tolerance")
+            raise ValueError(f"Reference validation metric {metric} lacks a tolerance")
         rows.append({
             "metric": metric, "observed": observed, "expected": expected,
             "tolerance": tolerance_label, "status": "PASS" if ok else "FAIL", "kind": "primary",
@@ -542,7 +542,7 @@ def finalize_stage(paths: dict[str, Path], cfg: dict[str, Any], logger) -> dict[
             sensitivity_rows.append(_scan_comparison(primary_score, full_score, "n=100 primary vs n=102"))
     if sensitivity_rows:
         sensitivity = pd.concat(sensitivity_rows, ignore_index=True)
-        sensitivity.to_csv(paths["tables"] / "Final_Model_Sensitivity.csv", index=False)
+        sensitivity.to_csv(paths["tables"] / "Model_Sensitivity.csv", index=False)
 
     lolo_dir = paths["results"] / "gemma_lolo_score"
     workbook_additions: dict[str, pd.DataFrame] = {}
@@ -560,7 +560,7 @@ def finalize_stage(paths: dict[str, Path], cfg: dict[str, Any], logger) -> dict[
             lolo_rows.append(comp)
         if lolo_rows:
             lolo_genomewide = pd.concat(lolo_rows, ignore_index=True)
-            lolo_genomewide.to_csv(paths["tables"] / "Final_Leave_One_Location_Out.csv", index=False)
+            lolo_genomewide.to_csv(paths["tables"] / "Leave_One_Location_Out.csv", index=False)
             workbook_additions["LOO_Genomewide"] = lolo_genomewide
         candidate_path = paths["tables"] / "Top_Ranked_Candidates.csv"
         if candidate_path.exists():
@@ -568,37 +568,37 @@ def finalize_stage(paths: dict[str, Path], cfg: dict[str, Any], logger) -> dict[
             lolo_candidates = _candidate_lolo_support(candidates, primary_score, lolo, list(cfg["locations"]))
             if not lolo_candidates.empty:
                 lolo_candidates.to_csv(
-                    paths["tables"] / "Final_Leave_One_Location_Out_Candidates.csv", index=False
+                    paths["tables"] / "Leave_One_Location_Out_Candidates.csv", index=False
                 )
                 workbook_additions["LOO_Candidates"] = lolo_candidates
 
-    final_manifest = paths["results"] / "final_analysis_manifest.json"
+    final_manifest = paths["results"] / "analysis_manifest.json"
     if final_manifest.exists():
         payload = json.loads(final_manifest.read_text(encoding="utf-8"))
         payload["pipeline_version"] = VERSION
         payload["sensitivity_tables_written"] = bool(sensitivity_rows)
-        payload["lolo_table_written"] = (paths["tables"] / "Final_Leave_One_Location_Out.csv").exists()
+        payload["lolo_table_written"] = (paths["tables"] / "Leave_One_Location_Out.csv").exists()
         payload["lolo_candidate_table_written"] = (
-            paths["tables"] / "Final_Leave_One_Location_Out_Candidates.csv"
+            paths["tables"] / "Leave_One_Location_Out_Candidates.csv"
         ).exists()
-        audit = _reference_audit(payload, cfg)
-        audit.to_csv(paths["tables"] / "Reference_Reproduction_Audit.csv", index=False)
-        workbook_additions["Reference_Audit"] = audit
-        primary_failures = list(audit.attrs.get("primary_failures", []))
-        strict_reference = bool(audit.attrs.get("strict_primary", False))
-        payload["reference_audit_passed"] = bool(
-            audit.empty or (audit.loc[audit["kind"] == "primary", "status"] == "PASS").all()
+        validation = _reference_validation(payload, cfg)
+        validation.to_csv(paths["tables"] / "Reference_Reproduction_Validation.csv", index=False)
+        workbook_additions["Reference_Validation"] = validation
+        primary_failures = list(validation.attrs.get("primary_failures", []))
+        strict_reference = bool(validation.attrs.get("strict_primary", False))
+        payload["reference_validation_passed"] = bool(
+            validation.empty or (validation.loc[validation["kind"] == "primary", "status"] == "PASS").all()
         )
-        payload["reference_audit_failures"] = primary_failures
+        payload["reference_validation_failures"] = primary_failures
         save_json(final_manifest, payload)
         summary = payload
         _append_workbook_sheets(
-            paths["results"] / "LeafBlight_PEIR1_Final_Analysis_Results.xlsx",
+            paths["results"] / "LeafBlight_MultiEnvironment_Analysis_Results.xlsx",
             workbook_additions,
         )
         if primary_failures and strict_reference:
             raise RuntimeError(
-                "Audited reference metrics did not reproduce. Audit outputs were saved: "
+                "Reference values did not reproduce within the configured tolerances. Validation output: "
                 + "; ".join(primary_failures)
             )
     del geno
@@ -608,7 +608,7 @@ def finalize_stage(paths: dict[str, Path], cfg: dict[str, Any], logger) -> dict[
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Final PEI R1 sorghum leaf blight analysis pipeline"
+        description="Sorghum leaf blight multi-environment genomic analysis pipeline"
     )
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--project-root", required=True)
@@ -630,7 +630,7 @@ def main() -> int:
         shutil.copy2(bundled, config_path)
     cfg = load_config(config_path)
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    logger = setup_logger(paths["logs"] / f"final_pipeline_{args.stage}_{stamp}.log")
+    logger = setup_logger(paths["logs"] / f"analysis_pipeline_{args.stage}_{stamp}.log")
     logger.info("Sorghum leaf blight pipeline v%s", VERSION)
     logger.info("Project root: %s", paths["root"])
 
@@ -640,9 +640,9 @@ def main() -> int:
         gemma_stage(paths, cfg, args.gemma_wsl, logger, args.force)
     if args.stage in {"finalize", "all"}:
         summary = finalize_stage(paths, cfg, logger)
-        print("FINAL_SUMMARY=" + str(paths["results"] / "READ_ME_FIRST_FINAL_ANALYSIS.txt"))
-        print("FINAL_WORKBOOK=" + str(paths["results"] / "LeafBlight_PEIR1_Final_Analysis_Results.xlsx"))
-        print("FINAL_MANIFEST=" + str(paths["results"] / "final_analysis_manifest.json"))
+        print("FINAL_SUMMARY=" + str(paths["results"] / "ANALYSIS_SUMMARY.txt"))
+        print("FINAL_WORKBOOK=" + str(paths["results"] / "LeafBlight_MultiEnvironment_Analysis_Results.xlsx"))
+        print("FINAL_MANIFEST=" + str(paths["results"] / "analysis_manifest.json"))
         logger.info("Final summary: %s", summary)
     return 0
 

@@ -64,7 +64,7 @@ def write_unique_plink_files(
     logger: logging.Logger,
     force: bool = False,
 ) -> dict[str, Path]:
-    """Write auditable PLINK BED/BIM/FAM files with guaranteed-unique marker IDs.
+    """Write reproducible PLINK BED/BIM/FAM files with guaranteed-unique marker IDs.
 
     The VCF cache contains dosages but not REF/ALT alleles. Dosage 0/1/2 is
     therefore encoded as A/A, A/G, G/G. This preserves association p-values;
@@ -181,7 +181,7 @@ def write_unique_plink_files(
         chromosome_rows.append({"CHR": chrom, "n_snps": len(ids), "path": str(path)})
     pd.DataFrame(chromosome_rows).to_csv(chromosome_dir / "manifest.csv", index=False)
 
-    # Deterministic read-back audit.
+    # Deterministic read-back validation.
     check_rows = sorted(set([0, n_variants - 1] + np.linspace(0, n_variants - 1, 12, dtype=int).tolist()))
     with open(bed, "rb") as handle:
         if handle.read(3) != bytes([0x6C, 0x1B, 0x01]):

@@ -71,6 +71,6 @@ def test_compact_finalization_smoke(tmp_path: Path) -> None:
         power_sample_sizes=(n_samples,),
     )
     assert summary["primary_test"] == "score"
-    assert (tmp_path / "05_results" / "LeafBlight_PEIR1_Final_Analysis_Results.xlsx").exists()
-    assert (tmp_path / "05_results" / "final_analysis_manifest.json").exists()
+    assert (tmp_path / "05_results" / "LeafBlight_MultiEnvironment_Analysis_Results.xlsx").exists()
+    assert (tmp_path / "05_results" / "analysis_manifest.json").exists()
     del geno

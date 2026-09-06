@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.2
+
+- Add raw/INT-by-PC OLS diagnostics and genotype-based PC reconstruction.
+- Add matched-GEMMA-mode-3 primary/location-omission coefficient comparisons.
+- Remove mixed-estimator direction comparisons from the main output.
+- State detectable effects in residual SD per allele and remove incorrect
+  total-variance-explained labels.
+- Label candidate effects and Wald intervals by estimator and dosage coding.
+- Verify the complete source inventory before publishing a tagged release.
+
 ## 2.0.1 — 2026-09-04
 
 ### Distribution and metadata

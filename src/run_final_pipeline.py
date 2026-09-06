@@ -44,7 +44,7 @@ from lb_phenotype import (
 from lb_plink import write_unique_plink_files
 from lb_structure import build_or_load_population_structure, select_ld_pruned_structure_markers
 
-VERSION = "2.0.1"
+VERSION = "2.0.2"
 
 
 def require(path: Path, label: str) -> Path:
@@ -397,54 +397,26 @@ def _reference_validation(summary: dict[str, Any], cfg: dict[str, Any]) -> pd.Da
     return result
 
 
-def _candidate_lolo_support(
-    candidates: pd.DataFrame,
-    primary_score: pd.DataFrame,
-    lolo_scans: dict[tuple[str, str], pd.DataFrame],
-    locations: list[str],
-) -> pd.DataFrame:
-    if candidates.empty or "variant_index" not in candidates.columns:
+def _candidate_lolo_support(candidates: pd.DataFrame, primary_score: pd.DataFrame, lolo_scans: dict[tuple[str, str], pd.DataFrame], locations: list[str]) -> pd.DataFrame:
+    if candidates.empty or 'variant_index' not in candidates.columns:
         return pd.DataFrame()
-    candidate_ids = candidates[["variant_index", "lead_snp", "CHR", "pos"]].drop_duplicates("variant_index")
-    primary = primary_score.set_index("variant_index")
+    candidate_ids = candidates[['variant_index', 'lead_snp', 'CHR', 'pos']].drop_duplicates('variant_index')
+    primary = primary_score.set_index('variant_index')
     rows: list[dict[str, Any]] = []
     for location in locations:
-        label = "".join(ch if ch.isalnum() else "_" for ch in str(location)).strip("_").upper()
-        inc_key = ("loco", f"INC_LOO_{label}")
-        sev_key = ("loco", f"SEV_LOO_{label}")
+        label = ''.join((ch if ch.isalnum() else '_' for ch in str(location))).strip('_').upper()
+        inc_key = ('loco', f'INC_LOO_{label}')
+        sev_key = ('loco', f'SEV_LOO_{label}')
         if inc_key not in lolo_scans or sev_key not in lolo_scans:
             continue
-        table = build_test_table(lolo_scans[inc_key], lolo_scans[sev_key], "score").set_index("variant_index")
+        table = build_test_table(lolo_scans[inc_key], lolo_scans[sev_key], 'score').set_index('variant_index')
         for row in candidate_ids.itertuples(index=False):
             variant_index = int(row.variant_index)
             if variant_index not in table.index or variant_index not in primary.index:
                 continue
             current = table.loc[variant_index]
             base = primary.loc[variant_index]
-            rows.append({
-                "variant_index": variant_index,
-                "lead_snp": row.lead_snp,
-                "CHR": int(row.CHR),
-                "pos": int(row.pos),
-                "omitted_location": str(location),
-                "p_INC_score": float(current["p_INC"]),
-                "p_SEV_score": float(current["p_SEV"]),
-                "p_ACAT_score": float(current["p_ACAT"]),
-                "p_SIMES_score": float(current["p_SIMES"]),
-                "beta_INC_score": float(current.get("beta_INC", np.nan)),
-                "beta_SEV_score": float(current.get("beta_SEV", np.nan)),
-                "primary_p_INC_score": float(base["p_INC"]),
-                "primary_p_SEV_score": float(base["p_SEV"]),
-                "primary_p_ACAT_score": float(base["p_ACAT"]),
-                "primary_beta_INC_score": float(base.get("beta_INC", np.nan)),
-                "primary_beta_SEV_score": float(base.get("beta_SEV", np.nan)),
-                "INC_effect_direction_preserved": bool(
-                    np.sign(current.get("beta_INC", np.nan)) == np.sign(base.get("beta_INC", np.nan))
-                ),
-                "SEV_effect_direction_preserved": bool(
-                    np.sign(current.get("beta_SEV", np.nan)) == np.sign(base.get("beta_SEV", np.nan))
-                ),
-            })
+            rows.append({'variant_index': variant_index, 'lead_snp': row.lead_snp, 'CHR': int(row.CHR), 'pos': int(row.pos), 'omitted_location': str(location), 'p_INC_score': float(current['p_INC']), 'p_SEV_score': float(current['p_SEV']), 'p_ACAT_score': float(current['p_ACAT']), 'p_SIMES_score': float(current['p_SIMES']), 'beta_INC_score': float(current.get('beta_INC', np.nan)), 'beta_SEV_score': float(current.get('beta_SEV', np.nan)), 'primary_p_INC_score': float(base['p_INC']), 'primary_p_SEV_score': float(base['p_SEV']), 'primary_p_ACAT_score': float(base['p_ACAT']), 'omission_effect_estimator': 'GEMMA mode 3; null ML covariance', 'effect_unit': 'Inverse-normal phenotype units per synthetic allele1 A'})
     return pd.DataFrame(rows)
 
 

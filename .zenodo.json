@@ -7,7 +7,7 @@
     }
   ],
   "title": "Sorghum leaf blight multi-environment genomic analysis",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "access_right": "open",
   "description": "Reproducible software for multi-environment genomic analysis of sorghum leaf blight incidence and severity in West African field evaluations. The workflow reconstructs accession phenotypes from plot-level observations, applies official GEMMA 0.98.5 leave-one-chromosome-out score tests for primary inference, uses likelihood-ratio tests as a sensitivity analysis, compares ACAT and Simes p-value combinations, evaluates conditional severity, accounts for genotype-equivalent markers through LD-based clumping, and reports effect estimates, confidence intervals, detectable-effect calculations, and leave-one-location-out stability.",
   "keywords": [

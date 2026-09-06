@@ -152,76 +152,45 @@ def compare_tests(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def build_candidate_support(
-    candidate_leads: pd.DataFrame,
-    score_table: pd.DataFrame,
-    lrt_table: pd.DataFrame,
-    wald_table: pd.DataFrame,
-    conditional_score: pd.DataFrame | None,
-    positive_score: pd.DataFrame | None,
-    global_classes: pd.DataFrame,
-) -> pd.DataFrame:
+def build_candidate_support(candidate_leads: pd.DataFrame, score_table: pd.DataFrame, lrt_table: pd.DataFrame, wald_table: pd.DataFrame, conditional_score: pd.DataFrame | None, positive_score: pd.DataFrame | None, global_classes: pd.DataFrame) -> pd.DataFrame:
     if candidate_leads.empty:
         return candidate_leads.copy()
-    meta_cols = [
-        "lead_rank", "lead_variant_index", "lead_snp", "CHR", "pos", "MAF",
-        "candidate_criterion", "window_kb", "r2_threshold", "n_local_members",
-        "global_alias_class_index", "test_class_index", "test_class_size",
-        "candidate_source", "clump_method",
-    ]
+    meta_cols = ['lead_rank', 'lead_variant_index', 'lead_snp', 'CHR', 'pos', 'MAF', 'candidate_criterion', 'window_kb', 'r2_threshold', 'n_local_members', 'global_alias_class_index', 'test_class_index', 'test_class_size', 'candidate_source', 'clump_method']
     meta_cols = [c for c in meta_cols if c in candidate_leads.columns]
     out = candidate_leads[meta_cols].copy()
-    out = out.rename(columns={"lead_variant_index": "variant_index"})
+    out = out.rename(columns={'lead_variant_index': 'variant_index'})
 
-    def add_table(
-        source: pd.DataFrame,
-        suffix: str,
-        methods: list[str],
-        effect_traits: list[str] | None = None,
-        effect_suffix: str | None = None,
-    ) -> None:
+    def add_table(source: pd.DataFrame, suffix: str, methods: list[str], effect_traits: list[str] | None=None, effect_suffix: str | None=None) -> None:
         nonlocal out
-        keep = ["variant_index"]
+        keep = ['variant_index']
         rename: dict[str, str] = {}
         for method in methods:
-            for prefix in ["p", "q"]:
-                col = f"{prefix}_{method}"
+            for prefix in ['p', 'q']:
+                col = f'{prefix}_{method}'
                 if col in source.columns:
                     keep.append(col)
-                    rename[col] = f"{col}_{suffix}"
+                    rename[col] = f'{col}_{suffix}'
         for trait in effect_traits or []:
-            for col in [f"beta_{trait}", f"se_{trait}", f"ci_low_{trait}", f"ci_high_{trait}"]:
+            for col in [f'beta_{trait}', f'se_{trait}', f'ci_low_{trait}', f'ci_high_{trait}']:
                 if col in source.columns:
                     keep.append(col)
-                    rename[col] = col if effect_suffix is None else f"{col}_{effect_suffix}"
-        out = out.merge(source[keep].rename(columns=rename), on="variant_index", how="left")
-
-    # GEMMA reports one beta/SE estimate alongside Wald/LRT/score p-values.
-    # Store that estimate once, without implying that three distinct effects were fitted.
-    add_table(
-        score_table, "score", ["INC", "SEV", "ACAT", "SIMES"],
-        effect_traits=["INC", "SEV"], effect_suffix=None,
-    )
-    add_table(lrt_table, "lrt", ["INC", "SEV", "ACAT", "SIMES"])
-    add_table(wald_table, "wald_diagnostic", ["INC", "SEV", "ACAT", "SIMES"])
+                    rename[col] = col if effect_suffix is None else f'{col}_{effect_suffix}'
+        out = out.merge(source[keep].rename(columns=rename), on='variant_index', how='left')
+    add_table(score_table, 'score', ['INC', 'SEV', 'ACAT', 'SIMES'], effect_traits=['INC', 'SEV'], effect_suffix=None)
+    add_table(lrt_table, 'lrt', ['INC', 'SEV', 'ACAT', 'SIMES'])
+    add_table(wald_table, 'wald_diagnostic', ['INC', 'SEV', 'ACAT', 'SIMES'])
     if conditional_score is not None:
-        add_table(
-            conditional_score, "conditional_score", ["SEV", "ACAT", "SIMES"],
-            effect_traits=["SEV"], effect_suffix="conditional",
-        )
+        add_table(conditional_score, 'conditional_score', ['SEV', 'ACAT', 'SIMES'], effect_traits=['SEV'], effect_suffix='conditional')
     if positive_score is not None:
-        add_table(
-            positive_score, "positive_only_score", ["SEV", "ACAT", "SIMES"],
-            effect_traits=["SEV"], effect_suffix="positive_only",
-        )
-
-    aliases = global_classes[[
-        "global_alias_class_index", "global_alias_class_id", "class_size",
-        "n_chromosomes", "alias_mappings",
-    ]].rename(columns={"class_size": "global_alias_class_size"})
-    if "global_alias_class_index" in out.columns:
-        out = out.merge(aliases, on="global_alias_class_index", how="left")
-    return out.sort_values(["p_ACAT_score", "p_SEV_score", "CHR", "pos"], kind="mergesort").reset_index(drop=True)
+        add_table(positive_score, 'positive_only_score', ['SEV', 'ACAT', 'SIMES'], effect_traits=['SEV'], effect_suffix='positive_only')
+    aliases = global_classes[['global_alias_class_index', 'global_alias_class_id', 'class_size', 'n_chromosomes', 'alias_mappings']].rename(columns={'class_size': 'global_alias_class_size'})
+    if 'global_alias_class_index' in out.columns:
+        out = out.merge(aliases, on='global_alias_class_index', how='left')
+    out['effect_estimator'] = 'GEMMA mode 4; alternative-model REML'
+    out['effect_unit'] = 'Inverse-normal phenotype units per synthetic allele1 A'
+    out['effect_allele_note'] = 'Synthetic dosage label; not an original nucleotide identity'
+    out['interval_note'] = 'Unadjusted beta +/- 1.96 SE Wald interval; not an inverted score-test interval'
+    return out.sort_values(['p_ACAT_score', 'p_SEV_score', 'CHR', 'pos'], kind='mergesort').reset_index(drop=True)
 
 
 def _plot_qq(p_values: np.ndarray, label: str, path: Path) -> None:

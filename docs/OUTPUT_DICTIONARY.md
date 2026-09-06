@@ -1,31 +1,43 @@
 # Output dictionary
 
-## Result workbook
+## Main analysis
 
-`05_results/LeafBlight_MultiEnvironment_Analysis_Results.xlsx` contains compact result tables. Full all-SNP tables remain as compressed CSV files under `06_tables`.
+`05_results/LeafBlight_MultiEnvironment_Analysis_Results.xlsx` contains compact
+results. Full-marker probability tables remain in the analysis project.
 
-### Principal sheets and CSV files
+| Output table | Meaning |
+|---|---|
+| Inference_Profile | Number of tested SNP rows, lambda GC, minimum p/q and FDR counts for each test and trait/combination. |
+| Test_Sensitivity | Contrasts of score, likelihood-ratio and Wald probability profiles. |
+| Score_Concordance | Incidence/severity association-strength correlations. |
+| Score_Enrichment | Overlap, enrichment and set statistics at specified rank fractions. |
+| ACAT_vs_Simes | Comparison of the two p-value combination methods. |
+| Top_Ranked_Candidates | Exploratory alias-aware LD-clumped regions with separately identified p/q fields. |
+| Candidate_Genes | Nearby annotated genes; proximity is not evidence of causality. |
+| Power | Noncentral-t detectable effects in residual SD per allele. |
+| Model_Sensitivity | K-only/K+PC3 and primary/full-sample probability comparisons. |
+| Leave_One_Location_Out | Genome-wide comparisons after individual location omissions. |
+| Leave_One_Location_Out_Candidates | Candidate score probabilities and omission-mode-3 coefficients. No comparison to mode-4 primary coefficients is made. |
 
-- `Inference_Profile`: genomic inflation factor, minimum p/q, and FDR-hit counts for score, likelihood-ratio, and Wald tests. Wald rows are diagnostic.
-- `Test_Sensitivity`: genome-wide agreement and extreme-tail differences among score, LRT, and Wald tests.
-- `Score_Concordance`: Pearson and Spearman concordance of incidence and severity score-test association profiles.
-- `Score_Enrichment`: overlap and enrichment among top-ranked incidence and severity SNPs.
-- `ACAT_vs_Simes`: agreement between the two dual-trait combination methods.
-- `Top_Ranked_Candidates`: exploratory genotype-equivalence-aware, LD-clumped score-test regions with trait-specific p/q values, effects, standard errors, and confidence intervals.
-- `Candidate_Genes`: genes within 50 kb of each exploratory lead, or the nearest gene if none falls within that interval.
-- `Power`: detectable standardized effects by sample size, MAF, power, and alpha.
-- `Equivalence_Summary`: counts of SNP rows, chromosome-specific unique LOCO tests, and global exact or allele-complement genotype classes.
-- `ACAT_Clump_Leads` and `SEV_Clump_Leads`: exploratory score-test clumping outputs.
+Main candidate beta/SE values come from GEMMA mode 4 alternative-model REML.
+Their beta +/- 1.96 SE intervals are unadjusted Wald intervals, not score-test
+confidence intervals. Effect metadata describe the estimator and synthetic
+allele1 A coding; A/G do not identify the original nucleotide alleles.
 
-### Additional sensitivity files
+## Auxiliary command
 
-- `Model_Sensitivity.csv`: K-only versus K+PC3 and n=100 versus n=102 score-test comparisons.
-- `Leave_One_Location_Out.csv`: genome-wide score-test comparisons after omitting each field location.
-- `Leave_One_Location_Out_Candidates.csv`: candidate-level leave-one-location-out results.
-- `Unique_Test_Classes_full.csv.gz`: full chromosome-specific unique-test table.
-- `Global_Alias_Classes_full.csv.gz`: full global genotype-equivalence table.
-- `Duplicate_Marker_Mapping_full.csv.gz`: SNP-to-equivalence-class mapping.
+`python src/run_sensitivity.py --project-root PROJECT --output-dir NEW_OUTPUT`
+produces the following in a separate output folder.
 
-## Machine-readable manifest
+| Output | Meaning |
+|---|---|
+| Transformation_Checks.csv | Twenty OLS raw/INT-by-PC diagnostics using the project's primary PC basis. |
+| PC_Reconstruction_Columns.csv | Correlation checks for stored versus genotype-reconstructed PCs. |
+| PC_Reconstruction_Subspaces.csv | Distances and angles between nested PC spaces. |
+| OLS_Reproduction.csv | Optional comparisons with independent expected numerical tables. |
+| Candidate_Effect_Direction_Check.csv | Primary and omission coefficients both from GEMMA mode 3, paired with score probabilities. |
+| Candidate_Direction_Summary.csv | Counts of evaluated and direction-preserved candidate/omission comparisons. |
+| Power.csv | Independently recalculated residual-SD effect thresholds; no total variance explained is inferred. |
+| Calculation_Summary.json | Requested calculations, completion status and whether independent reference tables were supplied. |
 
-`05_results/analysis_manifest.json` records the inferential hierarchy, analysis dimensions, principal result counts, region-selection rule, and interpretation note.
+See `docs/DIAGNOSTICS.md` for required local files and optional reference inputs.

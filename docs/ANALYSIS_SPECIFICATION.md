@@ -47,4 +47,4 @@ Incidence and severity p-values are combined with both ACAT and Simes. A combine
 
 ## Power and uncertainty
 
-Trait-specific effect estimates, standard errors, and 95% confidence intervals are retained. A noncentral-t detectable-effect calculation reports the minimum standardized per-allele effect detectable at selected allele frequencies and multiplicity thresholds. This calculation is an approximation and is not a simulation of the full mixed model.
+Main candidate effects and standard errors are alternative-model REML estimates from GEMMA mode 4. The beta +/- 1.96 SE intervals are unadjusted Wald intervals. Matched-estimator location-omission comparisons use GEMMA mode 3 on both sides and are produced by the auxiliary diagnostic command. The noncentral-t detectable-effect calculation reports beta in residual SD per allele, under independent observations and genotype variance 2f(1-f); no total-phenotype explained variance is inferred.

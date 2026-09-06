@@ -61,6 +61,6 @@ def test_detectable_effect_increases_for_lower_maf_and_higher_power() -> None:
         alpha_definitions={"a": 0.05 / 500000},
         n_covariates=1,
     )
-    pivot = table.set_index(["maf", "target_power"])["minimum_detectable_standardized_per_allele_beta"]
+    pivot = table.set_index(["maf", "target_power"])["minimum_detectable_beta_residual_SD_per_allele"]
     assert pivot.loc[(0.05, 0.80)] > pivot.loc[(0.50, 0.80)]
     assert pivot.loc[(0.50, 0.90)] > pivot.loc[(0.50, 0.80)]

@@ -10,7 +10,7 @@ def test_release_versions_are_consistent() -> None:
     build = json.loads((repository / "BUILD_INFO.json").read_text(encoding="utf-8"))
     zenodo = json.loads((repository / ".zenodo.json").read_text(encoding="utf-8"))
     citation = (repository / "CITATION.cff").read_text(encoding="utf-8")
-    assert version == "2.0.1"
+    assert version == "2.0.2"
     assert build["software_release"] == version
     assert build["release_tag"] == f"v{version}"
     assert zenodo["version"] == version

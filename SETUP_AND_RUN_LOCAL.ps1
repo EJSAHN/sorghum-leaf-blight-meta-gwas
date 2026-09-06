@@ -72,7 +72,7 @@ function To-WSLPath([string]$WindowsPath) {
     return "/mnt/$drive/$rest"
 }
 
-Banner "Sorghum leaf blight analysis v2.0.1 - stage: $Stage"
+Banner "Sorghum leaf blight analysis v2.0.2 - stage: $Stage"
 
 $ProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
 $dirs = @(

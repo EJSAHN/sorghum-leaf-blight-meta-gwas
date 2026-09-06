@@ -6,8 +6,8 @@ authors:
   - family-names: Ahn
     given-names: Ezekiel J. S.
     orcid: "https://orcid.org/0000-0003-4447-4104"
-version: 2.0.1
-date-released: 2026-09-04
+version: 2.0.2
+date-released: 2026-09-05
 repository-code: "https://github.com/EJSAHN/sorghum-leaf-blight-meta-gwas"
 license: MIT
 keywords:

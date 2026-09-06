@@ -1,6 +1,6 @@
 # Sorghum leaf blight multi-environment genomic analysis
 
-Version **2.0.1** provides a reproducible workflow for genomic analysis of sorghum leaf blight incidence and severity measured across field locations in Niger and Senegal.
+Version **2.0.2** provides a reproducible workflow for genomic analysis of sorghum leaf blight incidence and severity measured across field locations in Niger and Senegal.
 
 ## Analysis overview
 
@@ -167,3 +167,22 @@ Use the metadata in `CITATION.cff` or the DOI assigned to the corresponding Zeno
 ## License
 
 MIT License. See `LICENSE`.
+
+
+## Auxiliary model diagnostics
+
+OLS raw/INT-by-PC diagnostics, PC reconstruction, matched-mode-3 candidate
+effect comparisons and residual-SD detectable effects are available through:
+
+```text
+python src/run_sensitivity.py --project-root PROJECT --output-dir NEW_OUTPUT --stage all
+```
+
+This command reads an existing analysis project and writes to a new, separate
+folder. It does not repeat the full mixed-model scans or change study figures.
+See [Model diagnostics](docs/DIAGNOSTICS.md) for inputs, effect units, estimator
+labels and optional independently supplied reference tables.
+
+A complete reproduction uses the main workflow followed by this auxiliary
+command. Study data are supplied separately, not embedded in the source
+archive. Source-file hashes can be checked with `python tools/verify_source.py`.

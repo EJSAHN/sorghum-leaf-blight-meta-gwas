@@ -77,8 +77,7 @@ The helper creates the project structure, copies or hard-links the inputs, insta
 After inputs and dependencies are prepared:
 
 ```powershell
-python src
-un_final_pipeline.py `
+python src/run_final_pipeline.py `
   --project-root "<PROJECT_ROOT>" `
   --stage all `
   --gemma-wsl "<WSL_PATH_TO_GEMMA>"
@@ -87,12 +86,9 @@ un_final_pipeline.py `
 Stages can be resumed independently:
 
 ```powershell
-python src
-un_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage prepare
-python src
-un_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage gemma --gemma-wsl "<WSL_PATH_TO_GEMMA>"
-python src
-un_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage finalize
+python src/run_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage prepare
+python src/run_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage gemma --gemma-wsl "<WSL_PATH_TO_GEMMA>"
+python src/run_final_pipeline.py --project-root "<PROJECT_ROOT>" --stage finalize
 ```
 
 ## Principal outputs

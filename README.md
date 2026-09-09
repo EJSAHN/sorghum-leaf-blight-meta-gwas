@@ -41,7 +41,7 @@ Arrange the input files as follows:
     Field_data_all_locations_SEN_2022_MAY_18_2023.xlsx
 ```
 
-Only leaf blight incidence and severity are extracted from the field workbooks. Other disease measurements are not used.
+Only leaf blight incidence and severity are extracted from the field workbooks.
 
 The reference VCF used for the reported analysis has SHA-256:
 
